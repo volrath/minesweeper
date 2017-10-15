@@ -3,8 +3,20 @@
     minesweeper.core)
 
 
+(defn cleared? [field x y]
+  (get-in field [x y :cleared?]))
+
+
 (defn mined? [field x y]
   (get-in field [x y :mined?]))
+
+
+(defn rows [field]
+  (count field))
+
+
+(defn cols [field]
+  (count (first field)))
 
 
 (defn empty-field
@@ -62,8 +74,8 @@
          field field]
     (if (>= mine-nr mines)
       field
-      (let [rows (count field)
-            cols (count (first field))
+      (let [rows (rows field)
+            cols (cols field)
             mine-x (rand-int rows)
             mine-y (rand-int cols)
             same-position (fn [{:keys [x y]}]
@@ -76,5 +88,36 @@
                  (assoc-in field [mine-x mine-y :mined?] true)))))))
 
 
-(defn clear-pos [field clicked-cell]
-  )
+;; Users update the world through these functions
+
+(defn clear-quadrant
+  "Runs when a user clicks on a uncleared quadrant at `x`,`y`.
+
+  Receives the current `field` and returns an updated `field` with the clear
+  quadrant(s) updated.  If the `x`,`y` position is a \"zero quadrant\" (no mines
+  surrounding it), recursively clear neighbors."
+  [field {:keys [x y] :as q}]
+  (if (cleared? field x y)  ;; If already cleared, nothing to do here.
+    field
+    (let [neighbors      (adjacent-coordinates q (rows field) (cols field))
+          adjacent-mines (count (filter (fn [{:keys [x y]}] (mined? field x y))
+                                        neighbors))
+          field          (assoc-in field [x y :cleared?] adjacent-mines)]
+      (if (pos? adjacent-mines)
+        field
+        (reduce clear-quadrant field neighbors)))))
+
+
+(defn clear-quadrant-expansion
+  "Runs when a user clicks on a cleared quadrant at `x`,`y`.
+
+  Receives the current `field` and returns an updated `field` with a possible
+  expansion over the clicked cleared quadrant."
+  [field {:keys [x y]}]
+  field)
+
+
+(defn toggle-quadrant-mark
+  "Toggles the `flagged?` state of a quadrant at `x`,`y`."
+  [field {:keys [x y]}]
+  (update-in field [x y :flagged?] not))
