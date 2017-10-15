@@ -7,6 +7,10 @@
   (get-in field [x y :cleared?]))
 
 
+(defn flagged? [field x y]
+  (get-in field [x y :flagged?]))
+
+
 (defn mined? [field x y]
   (get-in field [x y :mined?]))
 
@@ -113,11 +117,22 @@
 
   Receives the current `field` and returns an updated `field` with a possible
   expansion over the clicked cleared quadrant."
-  [field {:keys [x y]}]
-  field)
+  [field {:keys [x y] :as q}]
+  (if (or (not (cleared? field x y))
+          (flagged? field x y))
+    field
+    (let [neighbors       (adjacent-coordinates q (rows field) (cols field))
+          filter-adjacent (fn [pred] (filter (fn [{:keys [x y]}] (pred field x y)) neighbors))
+          adjacent-mines  (count (filter-adjacent mined?))
+          adjacent-flags  (count (filter-adjacent flagged?))]
+      (if (= adjacent-flags adjacent-mines)
+        (reduce clear-quadrant field (filter-adjacent (comp not cleared?)))
+        field))))
 
 
 (defn toggle-quadrant-mark
   "Toggles the `flagged?` state of a quadrant at `x`,`y`."
   [field {:keys [x y]}]
-  (update-in field [x y :flagged?] not))
+  (if (cleared? field x y)
+    field
+    (update-in field [x y :flagged?] not)))
