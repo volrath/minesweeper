@@ -13,14 +13,19 @@
    :justify-content "center"})
 
 
-(defn cell [x y {:keys [cleared? mined?]}]
+(defn cell [x y {:keys [cleared? flagged? mined?]}]
   ^{:key (str "c-" x "-" y)}
-  [:div {:on-click #(rf/dispatch [:click-cell {:x x :y y}])
+  [:div {:on-click #(rf/dispatch [:click-cell
+                                  {:x x :y y}
+                                  cleared?
+                                  flagged?
+                                  (.-ctrlKey %)])
          :style {:grid-row       (str (+ x 1) " / " (+ x 2))
                  :grid-column    (str (+ y 1) " / " (+ y 2))
-                 :background     (cond (not cleared?) "#ddd"
+                 :background     (cond flagged?       "#ff8888"
+                                       (not cleared?) "#ddd"
                                        mined?         "#444"
-                                       :else          "#e5e5e5")
+                                       :else          "#f0f0f0")
                  :color          (case cleared?
                                    1 "blue"
                                    2 "green"

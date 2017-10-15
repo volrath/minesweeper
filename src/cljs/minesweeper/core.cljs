@@ -20,6 +20,7 @@
   A 'cleared mined' position means the user lost the game."
   [rows cols]
   (let [positions (repeat {:mined?   false
+                           :flagged? false
                            :cleared? false})]
     (into [] (take rows (repeat
                          (into [] (take cols positions)))))))

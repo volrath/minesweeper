@@ -12,9 +12,10 @@
 
 ;; Quadrant in field
 (s/def ::mined? boolean?)
+(s/def ::flagged? boolean?)
 (s/def ::cleared? boolean?)
 
-(s/def ::quadrant (s/keys :req-un [::mined? ::cleared?]))
+(s/def ::quadrant (s/keys :req-un [::mined? ::flagged? ::cleared?]))
 
 ;; Field: is just a vector of vectors of quadrants.
 (s/def ::field-column (s/coll-of ::quadrant :kind vector?))
