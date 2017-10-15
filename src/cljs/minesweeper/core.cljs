@@ -3,12 +3,15 @@
     minesweeper.core)
 
 
+(defn unknown? [field x y]
+  (= (get-in field [x y :state]) :unknown))
+
 (defn cleared? [field x y]
-  (get-in field [x y :cleared?]))
+  (= (get-in field [x y :state]) :cleared))
 
 
 (defn flagged? [field x y]
-  (get-in field [x y :flagged?]))
+  (= (get-in field [x y :state]) :flagged))
 
 
 (defn mined? [field x y]
@@ -31,13 +34,13 @@
   defined as:
 
   {:mined? <bool>
-   :cleared? <bool>}
+   :state  <:unknown|:cleared|:flagged>
+   :adjacent-mines <optional int>}
 
   A 'cleared mined' position means the user lost the game."
   [rows cols]
-  (let [positions (repeat {:mined?   false
-                           :flagged? false
-                           :cleared? false})]
+  (let [positions (repeat {:mined? false
+                           :state :unknown})]
     (into [] (take rows (repeat
                          (into [] (take cols positions)))))))
 
@@ -95,21 +98,24 @@
 ;; Users update the world through these functions
 
 (defn clear-quadrant
-  "Runs when a user clicks on a uncleared quadrant at `x`,`y`.
+  "Runs when a user clicks on a unknown quadrant at `x`,`y`.
 
   Receives the current `field` and returns an updated `field` with the clear
   quadrant(s) updated.  If the `x`,`y` position is a \"zero quadrant\" (no mines
   surrounding it), recursively clear neighbors."
   [field {:keys [x y] :as q}]
-  (if (cleared? field x y)  ;; If already cleared, nothing to do here.
-    field
+  (println "clearing quadrant" x y)
+  (if (unknown? field x y)  ;; Only need to pay attention to unknown quadrants
     (let [neighbors      (adjacent-coordinates q (rows field) (cols field))
           adjacent-mines (count (filter (fn [{:keys [x y]}] (mined? field x y))
                                         neighbors))
-          field          (assoc-in field [x y :cleared?] adjacent-mines)]
+          field          (-> field
+                             (assoc-in [x y :state] :cleared)
+                             (assoc-in [x y :adjacent-mines] adjacent-mines))]
       (if (pos? adjacent-mines)
         field
-        (reduce clear-quadrant field neighbors)))))
+        (reduce clear-quadrant field neighbors)))
+    field))
 
 
 (defn clear-quadrant-expansion
@@ -118,7 +124,7 @@
   Receives the current `field` and returns an updated `field` with a possible
   expansion over the clicked cleared quadrant."
   [field {:keys [x y] :as q}]
-  (if (or (not (cleared? field x y))
+  (if (or (unknown? field x y)
           (flagged? field x y))
     field
     (let [neighbors       (adjacent-coordinates q (rows field) (cols field))
@@ -126,13 +132,13 @@
           adjacent-mines  (count (filter-adjacent mined?))
           adjacent-flags  (count (filter-adjacent flagged?))]
       (if (= adjacent-flags adjacent-mines)
-        (reduce clear-quadrant field (filter-adjacent (comp not cleared?)))
+        (reduce clear-quadrant field (filter-adjacent unknown?))
         field))))
 
 
 (defn toggle-quadrant-mark
-  "Toggles the `flagged?` state of a quadrant at `x`,`y`."
+  "Toggles the state of a quadrant at `x`,`y`."
   [field {:keys [x y]}]
   (if (cleared? field x y)
     field
-    (update-in field [x y :flagged?] not)))
+    (update-in field [x y :state] #(if (= % :unknown) :flagged :unknown))))

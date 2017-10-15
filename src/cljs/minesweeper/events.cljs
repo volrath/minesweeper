@@ -12,22 +12,22 @@
 
 (rf/reg-event-db
  :click-cell
- (fn [{:keys [db]} [_ clicked-cell cleared? flagged? ctrl?]]
+ (fn [{:keys [db]} [_ clicked-cell cell-state ctrl?]]
    (let [mines (get-in db [:difficulty :mines])
-         db (if (= (:status db) :pending)
-              (-> db
-                  (update :field plant-mines mines clicked-cell)
-                  (assoc :status :running))
-              db)]
+         db    (if (= (:status db) :pending)
+                 (-> db
+                     (update :field plant-mines mines clicked-cell)
+                     (assoc :status :running))
+                 db)]
      {:db
       (if (= (:status db) :running)  ;; If not running, there's no point...
         ;; First we determine the type of action the user is trying to take over
         ;; the clicked cell
         (let [noop   (fn [x _] x)
-              action (cond ctrl?    toggle-quadrant-mark
-                           flagged? noop
-                           cleared? clear-quadrant-expansion
-                           :else    clear-quadrant)]
+              action (cond ctrl?                   toggle-quadrant-mark
+                           (= cell-state :flagged) noop
+                           (= cell-state :cleared) clear-quadrant-expansion
+                           :else                   clear-quadrant)]
           ;; Then we change the world...
           (update db :field action clicked-cell))
         db)})))
