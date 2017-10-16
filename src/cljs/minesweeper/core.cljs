@@ -10,18 +10,14 @@
 (defn cleared? [field x y]
   (= (get-in field [x y :state]) :cleared))
 
-
 (defn flagged? [field x y]
   (= (get-in field [x y :state]) :flagged))
-
 
 (defn mined? [field x y]
   (get-in field [x y :mined?]))
 
-
 (defn rows [field]
   (count field))
-
 
 (defn cols [field]
   (count (first field)))
@@ -52,15 +48,10 @@
   returned list."
   [{:keys [x y] :as c} rows cols]
   (loop [neighbors          (list c)
-         possible-neighbors (list [-1 -1]  ;; TODO: pretty sure there's a better way to generate this.
-                                  [0 -1]
-                                  [1 -1]
-                                  [-1 0]
-                                  [0 0]
-                                  [1 0]
-                                  [-1 1]
-                                  [0 1]
-                                  [1 1])]
+         possible-neighbors (reduce (fn [l e]  ;; '([1 1] [1 0] [1 -1] [0 1] [0 0] ...)
+                                      (apply conj l (map (fn [i] [e i]) '(-1 0 1))))
+                                    '()
+                                    '(-1 0 1))]
     (if (empty? possible-neighbors)
       neighbors
       (let [[cx cy] (first possible-neighbors)
