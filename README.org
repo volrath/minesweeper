@@ -1,0 +1,5 @@
+* Minesweeper
+
+Minesweeper implementation written in ClojureScript, using [[https://github.com/reagent-project/reagent][Reagent]]/[[https://github.com/Day8/re-frame][Re-frame]].
+
+WIP.
