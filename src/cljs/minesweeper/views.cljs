@@ -1,5 +1,6 @@
 (ns minesweeper.views
   (:require [cljss.reagent :refer-macros [defstyled]]
+            [cljss.core :refer-macros [defstyles]]
             [re-frame.core :as rf]))
 
 (def container (.getElementById js/document "minesweeper"))
@@ -96,8 +97,25 @@
 ;; Difficulty Selection
 ;; -----------------------------------------------------------------------------
 
+(defstyles difficulty-option []
+  {:padding "1em 0"
+   :cursor  "pointer"})
+
 (defn select-difficulty []
-  [:div "Select your difficulty..."])
+  (let [option-class (difficulty-option)
+        option (fn [rows cols mines]
+                 [:li {:class    option-class
+                       :on-click #(rf/dispatch-sync [:change-status
+                                                     :set-difficulty {:rows  rows
+                                                                      :cols  cols
+                                                                      :mines mines}])}
+                  (str rows "x" cols " - " mines " mines")])]
+    [:div
+     [:h2 "Select Difficulty"]
+     [:ul {:style {:list-style "none"
+                   :color      "darkcyan"}}
+      (option 16 16 40)
+      (option 16 30 99)]]))
 
 
 ;; App Level Interface
