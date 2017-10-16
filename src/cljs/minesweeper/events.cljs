@@ -1,6 +1,7 @@
 (ns minesweeper.events
   (:require [minesweeper.core :refer [clear-quadrant clear-quadrant-expansion
-                                      empty-field plant-mines toggle-quadrant-mark]]
+                                      empty-field game-end-condition plant-mines
+                                      toggle-quadrant-mark uncover-mines]]
             [minesweeper.db :refer [default-db game-fsm]]
             [re-frame.core :as rf]))
 
@@ -27,7 +28,10 @@
                          (= cell-state :cleared) clear-quadrant-expansion
                          :else                   clear-quadrant)]
         ;; Then we change the world...
-        (update db :field action clicked-cell))
+        (let [new-db (update db :field action clicked-cell)]
+          (when-let [transition (game-end-condition (:field new-db))]
+            (rf/dispatch [:change-status transition]))
+          new-db))
       db)}))
 
 
@@ -60,6 +64,10 @@
   {:db (assoc db :js-interval (js/clearInterval (:js-interval db)))})
 
 
+(defn uncover-mine-field [{:keys [db]} _]
+  {:db (update db :field uncover-mines)})
+
+
 ;; Status changes
 
 (def status-hooks
@@ -69,7 +77,7 @@
                       :out [plant-initial-mines]}
    'Running          {:in  [turn-on-timer]
                       :out [turn-off-timer]}
-   })
+   'LostGame         {:in  [uncover-mine-field]}})
 
 
 (defn run-hooks [pipeline status db args]

@@ -108,6 +108,31 @@
         field))
 
 
+(defn game-end-condition
+  "Check `field` to see if the user won or lost the game.
+
+  Returns a FMS transition `:win` `:lose` or `nil` accordingly."
+  [field]
+  (loop [field field
+         won   true
+         mined false]
+    (let [row (first field)]
+      (if (and row (not mined))
+        (recur (rest field)
+               (and won
+                    (every? #(let [state (:state %)]  ;; All quadrants are either cleared or correctly flagged
+                               (or (= state :cleared)
+                                   (and (= state :flagged)
+                                        (:mined? %))))
+                            row))
+               (not (not-any? #(and (:mined? %)  ;; wtf cljs? why not `any?`
+                                    (= (:state %) :cleared))
+                              row)))
+        (cond mined :lose
+              won   :win
+              :else nil)))))
+
+
 ;; Users update the world through these functions
 
 (defn clear-quadrant
@@ -118,19 +143,15 @@
   surrounding it), recursively clear neighbors."
   [field {:keys [x y] :as q}]
   (if (unknown? field x y)  ;; Only need to pay attention to unknown quadrants
-    (if (mined? field x y)
-      (do
-        (rf/dispatch [:change-status :lose])
-        (uncover-mines field))
-      (let [neighbors      (adjacent-coordinates q (rows field) (cols field))
-            adjacent-mines (count (filter (fn [{:keys [x y]}] (mined? field x y))
-                                          neighbors))
-            field          (-> field
-                               (assoc-in [x y :state] :cleared)
-                               (assoc-in [x y :adjacent-mines] adjacent-mines))]
-        (if (pos? adjacent-mines)
-          field
-          (reduce clear-quadrant field neighbors))))
+    (let [neighbors      (adjacent-coordinates q (rows field) (cols field))
+          adjacent-mines (count (filter (fn [{:keys [x y]}] (mined? field x y))
+                                        neighbors))
+          field          (-> field
+                             (assoc-in [x y :state] :cleared)
+                             (assoc-in [x y :adjacent-mines] adjacent-mines))]
+      (if (pos? adjacent-mines)
+        field
+        (reduce clear-quadrant field neighbors)))
     field))
 
 

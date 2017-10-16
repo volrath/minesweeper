@@ -48,7 +48,7 @@
          :style    {:grid-row       (str (+ x 1) " / " (+ x 2))
                     :grid-column    (str (+ y 1) " / " (+ y 2))
                     :background     (cond (= game-status 'Paused) "#c4c4c4"
-                                          (= state :flagged) "#ff8888"
+                                          (= state :flagged) "#ddd"
                                           (= state :unknown) "#ddd"
                                           mined?             "#444"
                                           (= state :cleared) "#f0f0f0")
@@ -63,11 +63,13 @@
                                       8 "black"
                                       nil)
                     :border         "1px solid #bbb"
-                    :cursor         "pointer"
+                    :cursor         (if (or (= game-status 'Ready)
+                                            (= game-status 'Running)) "pointer" "default")
                     :text-align     "center"
                     :vertical-align "center"}}
    (when (not= game-status 'Paused)
-     (cond (and (= state :cleared) mined?) "💥"
+     (cond (= state :flagged) "🚩"
+           (and (= state :cleared) mined?) "💥"
            (and adjacent-mines (pos? adjacent-mines)) adjacent-mines
            :else nil))])
 
