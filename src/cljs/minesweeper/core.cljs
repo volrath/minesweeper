@@ -1,7 +1,6 @@
 (ns ^{:author "Daniel Barreto"
       :doc "Main game logic."}
-    minesweeper.core
-  (:require [re-frame.core :as rf]))
+    minesweeper.core)
 
 
 (defn unknown? [field x y]
