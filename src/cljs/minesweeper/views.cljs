@@ -51,6 +51,9 @@
          :style    {:grid-row       (str (+ x 1) " / " (+ x 2))
                     :grid-column    (str (+ y 1) " / " (+ y 2))
                     :background     (cond (= game-status 'Paused) "#c4c4c4"
+                                          (and (= state :flagged)
+                                               (not mined?)
+                                               (= game-status 'LostGame)) "#FFDCBA"
                                           (= state :flagged) "#ddd"
                                           (= state :unknown) "#ddd"
                                           mined?             "#bbb"
