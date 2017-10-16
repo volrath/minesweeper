@@ -1,6 +1,7 @@
 (ns ^{:author "Daniel Barreto"
       :doc "Main game logic."}
-    minesweeper.core)
+    minesweeper.core
+  (:require [re-frame.core :as rf]))
 
 
 (defn unknown? [field x y]
@@ -95,6 +96,18 @@
                  (assoc-in field [mine-x mine-y :mined?] true)))))))
 
 
+(defn uncover-mines
+  "Return a `field` where all the mined quadrants are `:cleared`."
+  [field]
+  (mapv (fn [row]
+          (mapv (fn [q]
+                  (if (:mined? q)
+                    (assoc q :state :cleared)
+                    q))
+                row))
+        field))
+
+
 ;; Users update the world through these functions
 
 (defn clear-quadrant
@@ -104,17 +117,20 @@
   quadrant(s) updated.  If the `x`,`y` position is a \"zero quadrant\" (no mines
   surrounding it), recursively clear neighbors."
   [field {:keys [x y] :as q}]
-  (println "clearing quadrant" x y)
   (if (unknown? field x y)  ;; Only need to pay attention to unknown quadrants
-    (let [neighbors      (adjacent-coordinates q (rows field) (cols field))
-          adjacent-mines (count (filter (fn [{:keys [x y]}] (mined? field x y))
-                                        neighbors))
-          field          (-> field
-                             (assoc-in [x y :state] :cleared)
-                             (assoc-in [x y :adjacent-mines] adjacent-mines))]
-      (if (pos? adjacent-mines)
-        field
-        (reduce clear-quadrant field neighbors)))
+    (if (mined? field x y)
+      (do
+        (rf/dispatch [:change-status :lose])
+        (uncover-mines field))
+      (let [neighbors      (adjacent-coordinates q (rows field) (cols field))
+            adjacent-mines (count (filter (fn [{:keys [x y]}] (mined? field x y))
+                                          neighbors))
+            field          (-> field
+                               (assoc-in [x y :state] :cleared)
+                               (assoc-in [x y :adjacent-mines] adjacent-mines))]
+        (if (pos? adjacent-mines)
+          field
+          (reduce clear-quadrant field neighbors))))
     field))
 
 
