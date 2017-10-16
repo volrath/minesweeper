@@ -53,7 +53,7 @@
                     :background     (cond (= game-status 'Paused) "#c4c4c4"
                                           (= state :flagged) "#ddd"
                                           (= state :unknown) "#ddd"
-                                          mined?             "#444"
+                                          mined?             "#bbb"
                                           (= state :cleared) "#f0f0f0")
                     :color          (case adjacent-mines
                                       1 "blue"
