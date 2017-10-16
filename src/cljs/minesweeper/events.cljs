@@ -88,7 +88,9 @@
          next-status (get-in game-fsm [(:status db) transition])
          merge-hooks (fn [db pipeline state]
                        (merge db (run-hooks pipeline state db args)))]
-     {:db (-> db
-              (merge-hooks :out prev-status)
-              (assoc :status next-status)
-              (merge-hooks :in next-status))})))
+     {:db (if next-status
+            (-> db
+                (merge-hooks :out prev-status)
+                (assoc :status next-status)
+                (merge-hooks :in next-status))
+            db)})))
