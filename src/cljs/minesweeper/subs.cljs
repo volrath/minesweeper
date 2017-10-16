@@ -29,15 +29,14 @@
 
 (rf/reg-sub
  :elapsed-time
- (fn [db _]
+ (fn [{:keys [db]} _]
    (:elapsed-time db)))
 
 (rf/reg-sub
  :timer
- (fn [query-v _]
-   (rf/subscribe [:elapsed-time]))
- (fn [elapsed-ms _]
+ :<- [:elapsed-time]
+ (fn [elapsed-ms query-v _]
    (let [seconds  (js/Math.floor (/ elapsed-ms 1000))
          minutes  (js/Math.floor (/ seconds 60))
          left-pad #(str (if (< % 10) "0" "") %)]
-     (str (left-pad minutes) ":" (left-pad seconds)))))
+     (str (left-pad minutes) ":" (left-pad (mod seconds 60))))))

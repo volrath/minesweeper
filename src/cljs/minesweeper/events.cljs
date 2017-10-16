@@ -31,6 +31,12 @@
       db)}))
 
 
+(rf/reg-event-db
+ :update-time
+ (fn [{:keys [db]} [_ elapsed]]
+   {:db (update db :elapsed-time + elapsed)}))
+
+
 ;; Status hooks
 
 (defn set-difficulty [{:keys [db]} [difficulty]]
@@ -46,13 +52,24 @@
     {:db (update db :field plant-mines mines initial-cell)}))
 
 
+(defn turn-on-timer [{:keys [db]} _]
+  (let [i (/ 1000.0 12)]
+    {:db (assoc db :js-interval (js/setInterval #(rf/dispatch [:update-time i]) i))}))
+
+(defn turn-off-timer [{:keys [db]} _]
+  {:db (assoc db :js-interval (js/clearInterval (:js-interval db)))})
+
+
 ;; Status changes
 
 (def status-hooks
   {'SelectDifficulty {:in  [reset-db]
                       :out [set-difficulty]}
    'Ready            {:in  [create-empty-field]
-                      :out [plant-initial-mines]}})
+                      :out [plant-initial-mines]}
+   'Running          {:in  [turn-on-timer]
+                      :out [turn-off-timer]}
+   })
 
 
 (defn run-hooks [pipeline status db args]

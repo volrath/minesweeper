@@ -6,7 +6,6 @@
 
 (defn game-status [status]
   (let [timer  @(rf/subscribe [:timer])]
-    (println "hey" status)
     [:div {:style {:font-size "60px"}}
      [:span timer]
      [:span (case status
