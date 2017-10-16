@@ -8,12 +8,16 @@
   (let [timer  @(rf/subscribe [:timer])]
     [:div {:style {:font-size "60px"}}
      [:span timer]
-     [:span (case status
-              Ready "🙉"
-              Running "🐵"
-              Paused "🙈"
-              WonGame "🎉"
-              LostGame "🙊")]]))
+     [:span {:style {:cursor "pointer"}
+             :on-click #(rf/dispatch [:change-status (if (= status 'Paused)
+                                                       :resume
+                                                       :pause)])}
+      (case status
+        Ready "🙉"
+        Running "🐵"
+        Paused "🙈"
+        WonGame "🎉"
+        LostGame "🙊")]]))
 
 
 ;; Field Grid
@@ -41,7 +45,8 @@
   [:div {:on-click (handle-click-cell x y state game-status)
          :style    {:grid-row       (str (+ x 1) " / " (+ x 2))
                     :grid-column    (str (+ y 1) " / " (+ y 2))
-                    :background     (cond (= state :flagged) "#ff8888"
+                    :background     (cond (= game-status 'Paused) "#c4c4c4"
+                                          (= state :flagged) "#ff8888"
                                           (= state :unknown) "#ddd"
                                           mined?             "#444"
                                           (= state :cleared) "#f0f0f0")
@@ -59,8 +64,10 @@
                     :cursor         "pointer"
                     :text-align     "center"
                     :vertical-align "center"}}
-   (when (and adjacent-mines (pos? adjacent-mines))
-     adjacent-mines)])
+   (when (not= game-status 'Paused)
+     (cond (and (= state :cleared) mined?) "💥"
+           (and adjacent-mines (pos? adjacent-mines)) adjacent-mines
+           :else nil))])
 
 
 (defn field-grid [status rows cols]
