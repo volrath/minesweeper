@@ -101,7 +101,8 @@
   [field]
   (mapv (fn [row]
           (mapv (fn [q]
-                  (if (:mined? q)
+                  (if (and (:mined? q)
+                           (not= (:state q) :flagged))
                     (assoc q :state :cleared)
                     q))
                 row))
