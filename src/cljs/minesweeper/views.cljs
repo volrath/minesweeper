@@ -5,18 +5,20 @@
 ;; Timer / Status
 
 (defn game-status [status]
-  (let [timer  @(rf/subscribe [:timer])]
+  (let [timer @(rf/subscribe [:timer])]
     [:div {:style {:font-size "60px"}}
      [:span timer]
-     [:span {:style {:cursor "pointer"}
-             :on-click #(rf/dispatch [:change-status (if (= status 'Paused)
-                                                       :resume
-                                                       :pause)])}
+     [:span {:style    {:cursor "pointer"}
+             :on-click #(rf/dispatch [:change-status (case status
+                                                       Paused   :resume
+                                                       Running  :pause
+                                                       WonGame  :reset
+                                                       LostGame :reset)])}
       (case status
-        Ready "🙉"
-        Running "🐵"
-        Paused "🙈"
-        WonGame "🎉"
+        Ready    "🙉"
+        Running  "🐵"
+        Paused   "🙈"
+        WonGame  "🎉"
         LostGame "🙊")]]))
 
 
