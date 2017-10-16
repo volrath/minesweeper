@@ -1,8 +1,21 @@
 (ns minesweeper.db
   (:require [cljs.spec.alpha :as s]))
 
-;; Status
-(s/def ::status #{:select-difficulty :pending :running :paused :win :lost})
+;; State Machine
+(def game-fsm {'SelectDifficulty  {:set-difficulty  'Ready}
+               'Ready             {:reset           'SelectDifficulty
+                                   :start           'Running}
+               'Running           {:reset           'SelectDifficulty
+                                   :pause           'Paused
+                                   :win             'WonGame
+                                   :lose            'LostGame}
+               'Paused            {:resume          'Running}
+               'WonGame           {:reset           'SelectDifficulty}
+               'LostGame          {:reset           'SelectDifficulty}})
+(s/def ::status (set (keys game-fsm)))
+
+;; Timer
+(s/def ::elapsed-time (s/and int? #(>= % 0)))
 
 ;; Difficulty
 (s/def ::rows pos-int?)
@@ -21,8 +34,9 @@
 (s/def ::field (s/coll-of ::field-column :kind vector?))
 
 ;; DB
-(s/def ::db (s/keys :req-un [::field ::status ::difficulty]))
+(s/def ::db (s/keys :req-un [::field ::elapsed-time ::status ::difficulty]))
 
-(def default-db {:field      []
-                 :status     :select-difficulty
-                 :difficulty nil})
+(def default-db {:field        []
+                 :elapsed-time 0
+                 :status       'SelectDifficulty
+                 :difficulty   nil})

@@ -10,9 +10,10 @@
 
 (defn init []
   (rf/dispatch-sync [:db-initialize])
-  (rf/dispatch-sync [:select-difficulty {:rows  16
-                                         :cols  16
-                                         :mines 40}])
+  (rf/dispatch-sync [:change-status
+                     :set-difficulty {:rows  16
+                                      :cols  16
+                                      :mines 40}])
   (reagent/render-component
    [minesweeper]
    (.getElementById js/document "container")))

@@ -25,3 +25,19 @@
  (fn [field query-v _]
    (let [[x y] (rest query-v)]
      (get-in field [x y]))))
+
+
+(rf/reg-sub
+ :elapsed-time
+ (fn [db _]
+   (:elapsed-time db)))
+
+(rf/reg-sub
+ :timer
+ (fn [query-v _]
+   (rf/subscribe [:elapsed-time]))
+ (fn [elapsed-ms _]
+   (let [seconds  (js/Math.floor (/ elapsed-ms 1000))
+         minutes  (js/Math.floor (/ seconds 60))
+         left-pad #(str (if (< % 10) "0" "") %)]
+     (str (left-pad minutes) ":" (left-pad seconds)))))

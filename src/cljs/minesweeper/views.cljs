@@ -2,7 +2,22 @@
   (:require [cljss.reagent :refer-macros [defstyled]]
             [re-frame.core :as rf]))
 
-;; Actual Game UI
+;; Timer / Status
+
+(defn game-status [status]
+  (let [timer  @(rf/subscribe [:timer])]
+    (println "hey" status)
+    [:div {:style {:font-size "60px"}}
+     [:span timer]
+     [:span (case status
+              Ready "🙉"
+              Running "🐵"
+              Paused "🙈"
+              WonGame "🎉"
+              LostGame "🙊")]]))
+
+
+;; Field Grid
 ;; -----------------------------------------------------------------------------
 
 (defstyled grid :div
@@ -13,12 +28,18 @@
    :justify-content "center"})
 
 
-(defn cell [x y {:keys [state mined? adjacent-mines]}]
+(defn handle-click-cell [x y cell-state game-status]
+  (fn [ev]
+    (when (or (= game-status 'Running)
+              (= game-status 'Ready))
+      (let [click {:x x :y y}]
+        (when (= game-status 'Ready)
+          (rf/dispatch [:change-status :start click]))
+        (rf/dispatch [:click-cell click cell-state (.-ctrlKey ev)])))))
+
+(defn cell [x y {:keys [state mined? adjacent-mines]} game-status]
   ^{:key (str "c-" x "-" y)}
-  [:div {:on-click #(rf/dispatch [:click-cell
-                                  {:x x :y y}
-                                  state
-                                  (.-ctrlKey %)])
+  [:div {:on-click (handle-click-cell x y state game-status)
          :style    {:grid-row       (str (+ x 1) " / " (+ x 2))
                     :grid-column    (str (+ y 1) " / " (+ y 2))
                     :background     (cond (= state :flagged) "#ff8888"
@@ -43,7 +64,7 @@
      adjacent-mines)])
 
 
-(defn field-grid [rows cols]
+(defn field-grid [status rows cols]
   [grid {:style {:grid-template-columns (str "repeat(" cols ", 1fr)")
                  :grid-template-rows    (str "repeat(" rows ", 1fr)")}}
    (let [field @(rf/subscribe [:field])]
@@ -51,7 +72,7 @@
       (for [x (range rows)]
         (doall
          (for [y (range cols)]
-           (cell x y (get-in field [x y])))))))])
+           (cell x y (get-in field [x y]) status))))))])
 
 
 ;; Difficulty Selection
@@ -64,7 +85,14 @@
 ;; App Level Interface
 ;; -----------------------------------------------------------------------------
 
+(defn game [status]
+  (let [{:keys [rows cols]} @(rf/subscribe [:difficulty])]
+    [:div
+     (game-status status)
+     (field-grid status rows cols)]))
+
 (defn minesweeper []
-  (if-let [{:keys [rows cols]} @(rf/subscribe [:difficulty])]
-    (field-grid rows cols)
-    (select-difficulty)))
+  (let [status @(rf/subscribe [:status])]
+    (if (= status 'SelectDifficulty)
+      (select-difficulty)
+      (game status))))
