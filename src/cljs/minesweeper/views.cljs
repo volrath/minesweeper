@@ -2,11 +2,14 @@
   (:require [cljss.reagent :refer-macros [defstyled]]
             [re-frame.core :as rf]))
 
+(def container (.getElementById js/document "minesweeper"))
+
 ;; Timer / Status
 
 (defn game-status [status]
   (let [timer @(rf/subscribe [:timer])]
-    [:div {:style {:font-size "60px"}}
+    [:div {:style {:font-size "60px"
+                   :text-align "center"}}
      [:span timer]
      [:span {:style    {:cursor "pointer"}
              :on-click #(rf/dispatch [:change-status (case status
@@ -27,7 +30,6 @@
 
 (defstyled grid :div
   {:display "grid"
-   :height "500px"
    :justify-items "stretch"
    :align-items "stretch"
    :justify-content "center"})
@@ -65,8 +67,12 @@
                     :border         "1px solid #bbb"
                     :cursor         (if (or (= game-status 'Ready)
                                             (= game-status 'Running)) "pointer" "default")
-                    :text-align     "center"
-                    :vertical-align "center"}}
+                    :display "flex"
+                    :align-items "center"
+                    :justify-content "center"
+                    :font-size "200%"
+                    :user-select "none"
+                    :-moz-user-select "none"}}
    (when (not= game-status 'Paused)
      (cond (= state :flagged) "🚩"
            (and (= state :cleared) mined?) "💥"
@@ -75,14 +81,16 @@
 
 
 (defn field-grid [status rows cols]
-  [grid {:style {:grid-template-columns (str "repeat(" cols ", 1fr)")
-                 :grid-template-rows    (str "repeat(" rows ", 1fr)")}}
-   (let [field @(rf/subscribe [:field])]
-     (doall
-      (for [x (range rows)]
-        (doall
-         (for [y (range cols)]
-           (cell x y (get-in field [x y]) status))))))])
+  (let [container-height (.-offsetHeight container)
+        grid-size (/ container-height rows)]
+    [grid {:style {:grid-template-columns (str "repeat(" cols ", " grid-size "px)")
+                   :grid-template-rows    (str "repeat(" rows ", " grid-size "px)")}}
+     (let [field @(rf/subscribe [:field])]
+       (doall
+        (for [x (range rows)]
+          (doall
+           (for [y (range cols)]
+             (cell x y (get-in field [x y]) status))))))]))
 
 
 ;; Difficulty Selection
@@ -98,8 +106,8 @@
 (defn game [status]
   (let [{:keys [rows cols]} @(rf/subscribe [:difficulty])]
     [:div
-     (game-status status)
-     (field-grid status rows cols)]))
+     (field-grid status rows cols)
+     (game-status status)]))
 
 (defn minesweeper []
   (let [status @(rf/subscribe [:status])]

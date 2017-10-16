@@ -1,7 +1,7 @@
 (ns minesweeper.app
   (:require minesweeper.events  ;; Only here to make sure it's loaded
             minesweeper.subs    ;; by the compiler
-            [minesweeper.views :refer [minesweeper]]
+            [minesweeper.views :refer [container minesweeper]]
             [re-frame.core :as rf]
             [re-frisk.core :refer [enable-re-frisk!]]
             [reagent.core :as reagent]))
@@ -16,4 +16,4 @@
                                       :mines 40}])
   (reagent/render-component
    [minesweeper]
-   (.getElementById js/document "container")))
+   container))
