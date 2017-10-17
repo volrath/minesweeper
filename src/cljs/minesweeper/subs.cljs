@@ -3,19 +3,19 @@
 
 (rf/reg-sub
  :field
- (fn [{:keys [db]} _]
+ (fn [db _]
    (:field db)))
 
 
 (rf/reg-sub
  :status
- (fn [{:keys [db]} _]
+ (fn [db _]
    (:status db)))
 
 
 (rf/reg-sub
  :difficulty
- (fn [{:keys [db]} _]
+ (fn [db _]
    (:difficulty db)))
 
 (rf/reg-sub
@@ -29,7 +29,7 @@
 
 (rf/reg-sub
  :elapsed-time
- (fn [{:keys [db]} _]
+ (fn [db _]
    (:elapsed-time db)))
 
 (rf/reg-sub

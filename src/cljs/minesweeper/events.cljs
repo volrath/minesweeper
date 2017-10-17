@@ -6,8 +6,8 @@
             [re-frame.core :as rf]))
 
 
-(defn reset-db [{:keys [db]} _]
-  {:db (merge db default-db)})
+(defn reset-db [db _]
+  (merge db default-db))
 
 
 (rf/reg-event-db
@@ -17,28 +17,27 @@
 
 (rf/reg-event-db
  :click-cell
- (fn [{:keys [db]} [_ clicked-cell cell-state ctrl?]]
-   {:db
-    (if (= (:status db) 'Running)  ;; If not running, there's no point...
-      ;; First we determine the type of action the user is trying to take over
-      ;; the clicked cell
-      (let [noop   (fn [x _] x)
-            action (cond ctrl?                   toggle-quadrant-mark
-                         (= cell-state :flagged) noop
-                         (= cell-state :cleared) clear-quadrant-expansion
-                         :else                   clear-quadrant)]
-        ;; Then we change the world...
-        (let [new-db (update db :field action clicked-cell)]
-          (when-let [transition (game-end-condition (:field new-db))]
-            (rf/dispatch [:change-status transition]))
-          new-db))
-      db)}))
+ (fn [db [_ clicked-cell cell-state ctrl?]]
+   (if (= (:status db) 'Running)  ;; If not running, there's no point...
+     ;; First we determine the type of action the user is trying to take over
+     ;; the clicked cell
+     (let [noop   (fn [x _] x)
+           action (cond ctrl?                   toggle-quadrant-mark
+                        (= cell-state :flagged) noop
+                        (= cell-state :cleared) clear-quadrant-expansion
+                        :else                   clear-quadrant)]
+       ;; Then we change the world...
+       (let [new-db (update db :field action clicked-cell)]
+         (when-let [transition (game-end-condition (:field new-db))]
+           (rf/dispatch [:change-status transition]))
+         new-db))
+     db)))
 
 
 (rf/reg-event-db
  :update-time
- (fn [{:keys [db]} [_ elapsed]]
-   {:db (update db :elapsed-time + elapsed)}))
+ (fn [db [_ elapsed]]
+   (update db :elapsed-time + elapsed)))
 
 
 ;; Status hooks
@@ -91,14 +90,14 @@
 
 (rf/reg-event-db
  :change-status
- (fn [{:keys [db]} [_ transition & args]]
+ (fn [db [_ transition & args]]
    (let [prev-status (:status db)
          next-status (get-in game-fsm [(:status db) transition])
          merge-hooks (fn [db pipeline state]
                        (merge db (run-hooks pipeline state db args)))]
-     {:db (if next-status
-            (-> db
-                (merge-hooks :out prev-status)
-                (assoc :status next-status)
-                (merge-hooks :in next-status))
-            db)})))
+     (if next-status
+       (-> db
+           (merge-hooks :out prev-status)
+           (assoc :status next-status)
+           (merge-hooks :in next-status))
+       db))))
