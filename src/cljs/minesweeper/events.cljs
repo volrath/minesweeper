@@ -88,7 +88,7 @@
         (:db ctx)))))
 
 
-(rf/reg-event-db
+(rf/reg-event-db  ;; TODO: change for interceptors
  :change-status
  (fn [db [_ transition & args]]
    (let [prev-status (:status db)

@@ -47,10 +47,9 @@
   returned list."
   [{:keys [x y] :as c} rows cols]
   (loop [neighbors          (list c)
-         possible-neighbors (reduce (fn [l e]  ;; '([1 1] [1 0] [1 -1] [0 1] [0 0] ...)
-                                      (apply conj l (map (fn [i] [e i]) '(-1 0 1))))
-                                    '()
-                                    '(-1 0 1))]
+         possible-neighbors (for [x '(-1 0 1)  ;; '([1 1] [1 0] [1 -1] [0 1] [0 0] ...)
+                                  y '(-1 0 1)]
+                              [x y])]
     (if (empty? possible-neighbors)
       neighbors
       (let [[cx cy] (first possible-neighbors)
