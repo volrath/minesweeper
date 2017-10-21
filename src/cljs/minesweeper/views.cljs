@@ -131,7 +131,7 @@
      (game-status status)]))
 
 (defn minesweeper []
-  (let [status @(rf/subscribe [:status])]
+  (if-let [status @(rf/subscribe [:status])]
     (if (= status 'SelectDifficulty)
       (select-difficulty)
       (game status))))

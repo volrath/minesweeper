@@ -5,14 +5,34 @@
             [minesweeper.db :refer [default-db game-fsm]]
             [re-frame.core :as rf]))
 
+(def timer-manager
+  (rf/->interceptor
+   :id :timer-manager
+   :after (fn [context]
+            (if-let [[action timer-id] (or (rf/get-effect context :timer)
+                                           (rf/get-coeffect context :timer))]
+              (let [action-fn (case action
+                                :stop  (fn [timer-id]
+                                         (when timer-id
+                                           (js/clearInterval timer-id)))
+                                :start (fn [fps]
+                                         (js/setInterval #(rf/dispatch [:update-time fps]) fps)))]
+                (-> context
+                    (assoc-in [:effects :db :js-interval] (action-fn timer-id))
+                    (update :effects #(dissoc % :timer))))
+              context))))
 
-(defn reset-db [db _]
-  (merge db default-db))
+
+(defn reset-game [{:keys [db]} _]
+  (let [timer-id (:js-interval db)]
+    {:db (merge db default-db)
+     :timer [:stop timer-id]}))
 
 
-(rf/reg-event-db
+(rf/reg-event-fx
  :db-initialize
- reset-db)
+ [timer-manager]
+ reset-game)
 
 
 (rf/reg-event-db
@@ -56,11 +76,10 @@
 
 
 (defn turn-on-timer [{:keys [db]} _]
-  (let [i (/ 1000.0 12)]
-    {:db (assoc db :js-interval (js/setInterval #(rf/dispatch [:update-time i]) i))}))
+  {:timer [:start (/ 1000.0 12)]})
 
 (defn turn-off-timer [{:keys [db]} _]
-  {:db (assoc db :js-interval (js/clearInterval (:js-interval db)))})
+  {:timer [:stop (:js-interval db)]})
 
 
 (defn uncover-mine-field [{:keys [db]} _]
@@ -70,34 +89,50 @@
 ;; Status changes
 
 (def status-hooks
-  {'SelectDifficulty {:in  [reset-db]
-                      :out [set-difficulty]}
-   'Ready            {:in  [create-empty-field]
-                      :out [plant-initial-mines]}
-   'Running          {:in  [turn-on-timer]
-                      :out [turn-off-timer]}
-   'LostGame         {:in  [uncover-mine-field]}})
+  {'SelectDifficulty {:entering [reset-game]
+                      :leaving  [set-difficulty]}
+   'Ready            {:entering [create-empty-field]
+                      :leaving  [plant-initial-mines]}
+   'Running          {:entering [turn-on-timer]
+                      :leaving  [turn-off-timer]}
+   'LostGame         {:entering [uncover-mine-field]}})
 
 
-(defn run-hooks [pipeline status db args]
-  (when-let [hooks (get-in status-hooks [status pipeline])]
-    (loop [ctx      {:hooks hooks :db db}]
-      (if-let [hook (first (:hooks ctx))]
-        (let [next-ctx (update ctx :hooks rest)]
-          (recur (merge next-ctx (hook next-ctx args))))
-        (:db ctx)))))
+(defn next-status [db transition]
+  (get-in game-fsm [(:status db) transition]))
 
 
-(rf/reg-event-db  ;; TODO: change for interceptors
+(defn run-hooks [cofx hooks args]
+  (loop [hooks hooks
+         cofx  cofx]
+    (if-let [hook (first hooks)]
+      (recur (rest hooks)
+             (merge cofx (hook cofx args)))
+      cofx)))
+
+
+(defn process-hook-map [hooks-map pipeline]
+  (fn [context]
+    (if (next-status (rf/get-coeffect context :db)
+                     (second (rf/get-coeffect context :event)))
+      (let [fx-key       (if (= pipeline :entering) :effects :coeffects)
+            [_ _ & args] (rf/get-coeffect context :event)
+            status       (get-in context [fx-key :db :status])
+            hooks        (get-in hooks-map [status pipeline])]
+        (update context fx-key run-hooks hooks args))
+      context)))
+
+
+(def status-update-hooks
+  (rf/->interceptor
+   :id :status-update-hooks
+   :before (process-hook-map status-hooks :leaving)
+   :after  (process-hook-map status-hooks :entering)))
+
+
+(rf/reg-event-db
  :change-status
+ [timer-manager status-update-hooks]
  (fn [db [_ transition & args]]
-   (let [prev-status (:status db)
-         next-status (get-in game-fsm [(:status db) transition])
-         merge-hooks (fn [db pipeline state]
-                       (merge db (run-hooks pipeline state db args)))]
-     (if next-status
-       (-> db
-           (merge-hooks :out prev-status)
-           (assoc :status next-status)
-           (merge-hooks :in next-status))
-       db))))
+   (when-let [nxt (next-status db transition)]
+     (assoc db :status nxt))))
