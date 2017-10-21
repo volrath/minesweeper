@@ -2,4 +2,8 @@
 
 Minesweeper implementation written in ClojureScript, using [[https://github.com/reagent-project/reagent][Reagent]]/[[https://github.com/Day8/re-frame][Re-frame]].
 
-WIP.
+This is just a small experiment of [[http://blog.cognitect.com/blog/2017/5/22/restate-your-ui-using-state-machines-to-simplify-user-interface-development][using a FSM to handle UI interactions and
+states]], and a using a /hook system/ to [[https://github.com/volrath/minesweeper/blob/master/src/cljs/minesweeper/events.cljs#L91-L138][declaratively handle coeffects produced
+by FSM transitions]].
+
+Still WIP.
